@@ -1,20 +1,13 @@
 #include "inode.h"
-#include "inode.h"
+#include "blocks.h"
+#include "bitmap.h"
 
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
 
 #define TOTAL_INODE_NUM 1024
-
-#define BITS_PER_LONG (sizeof(long) / 8)
-#define INODE_STATE(i) (inode_status[(i) / BITS_PER_LONG] & (1L << ((i) % BITS_PER_LONG)))
-#define TOGGLE_INODE_STATE(i) (inode_status[(i) / BITS_PER_LONG] ^= (1L << ((i) % BITS_PER_LONG)))
-
-// The status of each inode on each bit.
-static long inode_status[TOTAL_INODE_NUM / sizeof(long) / 8] = {0};
-// The array of inodes.
-static inode_t inodes[TOTAL_INODE_NUM];
+#define INODE_BLOCK_NUM 1
 
 void print_inode(inode_t *node) {
   assert(node != NULL);
@@ -22,43 +15,50 @@ void print_inode(inode_t *node) {
 }
 
 inode_t *get_inode(int inum) {
-  assert(INODE_STATE(inum));
-  return inodes + inum;
-}
-
-static int available_inode() {
-  int i = 0;
-  while (INODE_STATE(i)) {
-    ++i;
-    assert(i < TOTAL_INODE_NUM);
-  }
-  return i;
+   void *block = blocks_get_block(INODE_BLOCK_NUM);  // wherever you put inodes
+  inode_t *inodes = (inode_t *)block;
+  return &inodes[inum];
 }
 
 int alloc_inode() {
-  int available = available_inode();
-  TOGGLE_INODE_STATE(available);
-  inodes[available].refs = 0;
-  inodes[available].mode = 0; // Default mode set to no permissions.
-  inodes[available].size = 0;
-  inodes[available].block = 0;
-  inodes[available].next = NULL;
-  return available;
+  void *inode_bitmap = get_inode_bitmap();
+  
+  for (int i = 0; i < TOTAL_INODE_NUM; i++) {
+    if (!bitmap_get(inode_bitmap, i)) {
+      bitmap_put(inode_bitmap, i, 1);
+      
+      inode_t *node = get_inode(i);
+      node->refs = 0;
+      node->mode = 0;
+      node->size = 0;
+      node->block = 0;
+      node->next = -1; 
+      
+      return i;
+    }
+  }
+  return -1; 
 }
 
 void free_inode(int inum) {
-  assert(!INODE_STATE(inum));
-  TOGGLE_INODE_STATE(inum);
+  inode_t *node = get_inode(inum);
+  if (node->block != 0) {
+    free_block(node->block);
+  }
+  void *inode_bitmap = get_inode_bitmap();
+  bitmap_put(inode_bitmap, inum, 0);
 }
 
 int grow_inode(inode_t *node, int size) {
-  assert(node->size + size <= BLOCK_SIZE); // TODO: allow big file allocations.
+  assert(node->size + size <= BLOCK_SIZE);
   node->size += size;
+  inode_t *inodes = (inode_t *)blocks_get_block(1);
   return (node - inodes);
 }
 
 int shrink_inode(inode_t *node, int size) {
   assert(node->size - size >= 0);
   node->size -= size;
+  inode_t *inodes = (inode_t *)blocks_get_block(1);
   return (node - inodes);
 }

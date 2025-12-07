@@ -22,7 +22,7 @@ typedef struct inode {
   // The block index the inode is referencing on.
   int block;
   // The next inode, reserved for big file support.
-  struct inode* next;
+  int next;
 } inode_t;
 
 /**
