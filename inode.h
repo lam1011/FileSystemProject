@@ -11,6 +11,9 @@
 #define READ_BIT  0b0001
 #define WRITE_BIT 0b0010
 #define EXEC_BIT  0b0100
+#define DIR_BIT   0b1000
+
+#define ROOT_DIR_INODE_INDEX 0
 
 typedef struct inode {
   // Number of files referenced to this inode.
