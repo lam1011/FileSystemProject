@@ -29,20 +29,23 @@ typedef struct directory {
   dir_entry_t entries[DIR_MAX_ENTRIES];
 } directory_t;
 
-static dir_entry_t* get_dir_entry(directory_t* dir, const char* entry_name) {
+static int get_dir_entry(directory_t* dir, const char* entry_name, dir_entry_t** result) {
+  assert(dir != NULL);
+  assert(result != NULL);
   for (int i = 0; i < dir->entries_count; ++i) {
     if (strncmp(entry_name, dir->entries[i].name, FILE_NAME_MAX_SIZE)) {
-      return dir->entries + i;
+      *result = dir->entries + i;
+      return 0;
     }
   }
-  return (dir_entry_t*)(-1);
+  return -ENOENT;
 }
 
 static void* get_inode_data(int inum) {
   return blocks_get_block(get_inode(inum)->block);
 }
 
-static dir_entry_t* get_entry_from_rel_path(directory_t* dir, const char* path) {
+static int get_entry_from_rel_path(directory_t* dir, const char* path, dir_entry_t** result) {
   slist_t* path_list = slist_explode(path, PATH_SEPERATOR);
   slist_t* curr_node = path_list;
   dir_entry_t* curr_entry = NULL;
@@ -53,23 +56,26 @@ static dir_entry_t* get_entry_from_rel_path(directory_t* dir, const char* path) 
       // Not a directory
       slist_free(path_list);
       printf("%s is not a directory.\n", path);
-      return (void*)(-1);
+      return -ENOTDIR;
     }
     directory_t* curr_dir = get_inode_data(curr_entry->inum);
-    get_dir_entry(curr_dir, curr_node->data);
+    get_dir_entry(curr_dir, curr_node->data, &curr_entry);
     if (curr_entry == (dir_entry_t*)(-1)) {
       // Not found
       slist_free(path_list);
       printf("%s not found.\n", path);
-      return (void*)(-1);
+      return -ENOENT;
     }
   }
   slist_free(path_list);
   if (curr_node == NULL) {
     // it is the current entry, return dir
-    return &(dir->entries[CURR_ENTRY_INDEX]);
+    *result = dir->entries + CURR_ENTRY_INDEX;
   }
-  return curr_entry;
+  else {
+    *result = curr_entry;
+  }
+  return 0;
 }
 
 void storage_init(const char *image_path) {
@@ -83,10 +89,11 @@ int storage_stat(const char *path, struct stat *st) {
 int storage_read(const char *path, char *buf, size_t size, off_t offset) {
   // inode[0] should be the root dir:
   directory_t* root_dir = blocks_get_block(ROOT_DIR_INODE_INDEX);
-  dir_entry_t* dir_entry = get_entry_from_rel_path(root_dir, path);
-  if (dir_entry == (dir_entry_t*)(-1)) {
+  dir_entry_t* dir_entry = NULL;
+  int ret = get_entry_from_rel_path(root_dir, path, &dir_entry);
+  if (ret != 0) {
     // Failed.
-    return -1;
+    return ret;
   }
   inode_t* entry_inode = get_inode(dir_entry->inum);
   char* block_data = blocks_get_block(entry_inode->block);
@@ -98,10 +105,11 @@ int storage_read(const char *path, char *buf, size_t size, off_t offset) {
 int storage_write(const char *path, const char *buf, size_t size, off_t offset) {
   // inode[0] should be the root dir:
   directory_t* root_dir = blocks_get_block(ROOT_DIR_INODE_INDEX);
-  dir_entry_t* dir_entry = get_entry_from_rel_path(root_dir, path);
-  if (dir_entry == (dir_entry_t*)(-1)) {
+  dir_entry_t* dir_entry = NULL;
+  int ret = get_entry_from_rel_path(root_dir, path, &dir_entry);
+  if (ret != 0) {
     // Failed.
-    return -1;
+    return ret;
   }
   inode_t* entry_inode = get_inode(dir_entry->inum);
   char* block_data = blocks_get_block(entry_inode->block);
