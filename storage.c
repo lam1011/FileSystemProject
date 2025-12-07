@@ -96,6 +96,18 @@ int storage_read(const char *path, char *buf, size_t size, off_t offset) {
     return ret;
   }
   inode_t* entry_inode = get_inode(dir_entry->inum);
+  if (offset >= entry_inode->size) {
+    // Offset out of bound
+    return 0;
+  }
+  if (entry_inode->mode & DIR_BIT) {
+    // Is a directory
+    return -EISDIR;
+  }
+  if ((entry_inode->mode & READ_BIT) == 0) {
+    // No read permission
+    return -EACCES;
+  }
   char* block_data = blocks_get_block(entry_inode->block);
   size_t copy_size = entry_inode->size > size + offset ? size : entry_inode->size;
   memcpy(buf, block_data + offset, copy_size);
@@ -112,6 +124,17 @@ int storage_write(const char *path, const char *buf, size_t size, off_t offset) 
     return ret;
   }
   inode_t* entry_inode = get_inode(dir_entry->inum);
+  if (entry_inode->mode & DIR_BIT) {
+    // Is a directory
+    return -EISDIR;
+  }
+  if ((entry_inode->mode & WRITE_BIT) == 0) {
+    // No write permission
+    return -EACCES;
+  }
+  if (offset + size >= entry_inode->size) {
+    grow_inode(entry_inode, offset + size); // TODO: handle large files
+  }
   char* block_data = blocks_get_block(entry_inode->block);
   size_t copy_size = entry_inode->size > size + offset ? size : entry_inode->size;
   memcpy(block_data + offset, buf, copy_size);
