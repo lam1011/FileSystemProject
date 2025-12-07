@@ -13,19 +13,58 @@
 #define EXEC_BIT  0b0100
 
 typedef struct inode {
-  int refs;  // reference count
-  int mode;  // permission & type
-  int size;  // bytes
-  int block; // single block pointer (if max file size <= 4K)
-  struct inode* next; // reserved for big file support.
+  // Number of files referenced to this inode.
+  int refs;
+  // The mode the file is on.
+  int mode;
+  // The size of the data stored in the block the inode is referencing on in bytes.
+  int size;
+  // The block index the inode is referencing on.
+  int block;
+  // The next inode, reserved for big file support.
+  struct inode* next;
 } inode_t;
 
+/**
+ * Print the information of an inode.
+ *
+ * @param node The node to print information from.
+ */
 void print_inode(inode_t *node);
+/**
+ * Get the instance of a node at inum.
+ *
+ * @param inum The index of the node to get instance from.
+ * @return The inode instance.
+ */
 inode_t *get_inode(int inum);
+/**
+ * Allocate an inode.
+ *
+ * @return The inum of the allocated inode.
+ */
 int alloc_inode();
+/**
+ * Free an inode.
+ *
+ * @param inum The inum of the inode to be freed.
+ */
 void free_inode(int inum);
+/**
+ * Increase the size of the data the inode is referencing on.
+ *
+ * @param node The node that the inode is referencing on.
+ * @param size The size to shink.
+ * @return The inum of the shrinked inode.
+ */
 int grow_inode(inode_t *node, int size);
+/**
+ * Shrink the size of the data the inode is referencingn on.
+ *
+ * @param node The inode to shink size.
+ * @param size The size to shrink.
+ * @return The inum of the shrinked inode.
+ */
 int shrink_inode(inode_t *node, int size);
-int inode_get_bnum(inode_t *node, int file_bnum);
 
 #endif

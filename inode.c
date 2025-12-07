@@ -62,7 +62,3 @@ int shrink_inode(inode_t *node, int size) {
   node->size -= size;
   return (node - inodes);
 }
-
-int inode_get_bnum(inode_t *node, int file_bnum) {
-  return 1; // TODO: allow big file allocations by assigning multiple blocks.
-}
