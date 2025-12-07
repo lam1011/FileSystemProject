@@ -1,5 +1,6 @@
 // based on cs3650 starter code
 
+#include "storage.h"
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
@@ -16,6 +17,7 @@
 // implementation for: man 2 access
 // Checks if a file exists.
 int nufs_access(const char *path, int mask) {
+  // TODO
   int rv = 0;
 
   // Only the root directory and our simulated file are accessible for now...
@@ -33,23 +35,7 @@ int nufs_access(const char *path, int mask) {
 // Implementation for: man 2 stat
 // This is a crucial function.
 int nufs_getattr(const char *path, struct stat *st) {
-  int rv = 0;
-
-  // Return some metadata for the root directory...
-  if (strcmp(path, "/") == 0) {
-    st->st_mode = 040755; // directory
-    st->st_size = 0;
-    st->st_uid = getuid();
-  }
-  // ...and the simulated file...
-  else if (strcmp(path, "/hello.txt") == 0) {
-    st->st_mode = 0100644; // regular file
-    st->st_size = 6;
-    st->st_uid = getuid();
-  } 
-  else { // ...other files do not exist on this filesystem
-    rv = -ENOENT;
-  }
+  int rv = storage_stat(path, st);
   printf("getattr(%s) -> (%d) {mode: %04o, size: %ld}\n", path, rv, st->st_mode,
          st->st_size);
   return rv;
@@ -59,6 +45,7 @@ int nufs_getattr(const char *path, struct stat *st) {
 // lists the contents of a directory
 int nufs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
                  off_t offset, struct fuse_file_info *fi) {
+  // TODO
   struct stat st;
   int rv;
 
@@ -80,6 +67,7 @@ int nufs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 // Note, for this assignment, you can alternatively implement the create
 // function.
 int nufs_mknod(const char *path, mode_t mode, dev_t rdev) {
+  // TODO
   int rv = -1;
   printf("mknod(%s, %04o) -> %d\n", path, mode, rv);
   return rv;
@@ -94,18 +82,19 @@ int nufs_mkdir(const char *path, mode_t mode) {
 }
 
 int nufs_unlink(const char *path) {
-  int rv = -1;
+  int rv = storage_unlink(path);
   printf("unlink(%s) -> %d\n", path, rv);
   return rv;
 }
 
 int nufs_link(const char *from, const char *to) {
-  int rv = -1;
+  int rv = storage_link(from, to);
   printf("link(%s => %s) -> %d\n", from, to, rv);
   return rv;
 }
 
 int nufs_rmdir(const char *path) {
+  // TODO
   int rv = -1;
   printf("rmdir(%s) -> %d\n", path, rv);
   return rv;
@@ -114,18 +103,20 @@ int nufs_rmdir(const char *path) {
 // implements: man 2 rename
 // called to move a file within the same filesystem
 int nufs_rename(const char *from, const char *to) {
-  int rv = -1;
+  int rv = storage_rename(from, to);
   printf("rename(%s => %s) -> %d\n", from, to, rv);
   return rv;
 }
 
 int nufs_chmod(const char *path, mode_t mode) {
+  // TODO
   int rv = -1;
   printf("chmod(%s, %04o) -> %d\n", path, mode, rv);
   return rv;
 }
 
 int nufs_truncate(const char *path, off_t size) {
+  // TODO
   int rv = -1;
   printf("truncate(%s, %ld bytes) -> %d\n", path, size, rv);
   return rv;
@@ -136,6 +127,7 @@ int nufs_truncate(const char *path, off_t size) {
 // open files.
 // You can just check whether the file is accessible.
 int nufs_open(const char *path, struct fuse_file_info *fi) {
+  // TODO
   int rv = 0;
   printf("open(%s) -> %d\n", path, rv);
   return rv;
@@ -144,6 +136,7 @@ int nufs_open(const char *path, struct fuse_file_info *fi) {
 // Actually read data
 int nufs_read(const char *path, char *buf, size_t size, off_t offset,
               struct fuse_file_info *fi) {
+  // TODO
   int rv = 6;
   strcpy(buf, "hello\n");
   printf("read(%s, %ld bytes, @+%ld) -> %d\n", path, size, offset, rv);
@@ -153,6 +146,7 @@ int nufs_read(const char *path, char *buf, size_t size, off_t offset,
 // Actually write data
 int nufs_write(const char *path, const char *buf, size_t size, off_t offset,
                struct fuse_file_info *fi) {
+  // TODO
   int rv = -1;
   printf("write(%s, %ld bytes, @+%ld) -> %d\n", path, size, offset, rv);
   return rv;
@@ -160,6 +154,7 @@ int nufs_write(const char *path, const char *buf, size_t size, off_t offset,
 
 // Update the timestamps on a file or directory.
 int nufs_utimens(const char *path, const struct timespec ts[2]) {
+  // TODO
   int rv = -1;
   printf("utimens(%s, [%ld, %ld; %ld %ld]) -> %d\n", path, ts[0].tv_sec,
          ts[0].tv_nsec, ts[1].tv_sec, ts[1].tv_nsec, rv);
@@ -169,6 +164,7 @@ int nufs_utimens(const char *path, const struct timespec ts[2]) {
 // Extended operations
 int nufs_ioctl(const char *path, int cmd, void *arg, struct fuse_file_info *fi,
                unsigned int flags, void *data) {
+  // TODO
   int rv = -1;
   printf("ioctl(%s, %d, ...) -> %d\n", path, cmd, rv);
   return rv;
