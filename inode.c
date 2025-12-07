@@ -15,7 +15,7 @@ void print_inode(inode_t *node) {
 }
 
 inode_t *get_inode(int inum) {
-   void *block = blocks_get_block(INODE_BLOCK_NUM);  // wherever you put inodes
+  void *block = blocks_get_block(INODE_BLOCK_NUM);  // wherever you put inodes
   inode_t *inodes = (inode_t *)block;
   return &inodes[inum];
 }
@@ -52,13 +52,13 @@ void free_inode(int inum) {
 int grow_inode(inode_t *node, int size) {
   assert(node->size + size <= BLOCK_SIZE);
   node->size += size;
-  inode_t *inodes = (inode_t *)blocks_get_block(1);
+  inode_t *inodes = (inode_t *)blocks_get_block(INODE_BLOCK_NUM);
   return (node - inodes);
 }
 
 int shrink_inode(inode_t *node, int size) {
   assert(node->size - size >= 0);
   node->size -= size;
-  inode_t *inodes = (inode_t *)blocks_get_block(1);
+  inode_t *inodes = (inode_t *)blocks_get_block(INODE_BLOCK_NUM);
   return (node - inodes);
 }
