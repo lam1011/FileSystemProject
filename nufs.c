@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #define FUSE_USE_VERSION 26
+#define _FILE_OFFSET_BITS 64 // FUSE errors without this
 #include <fuse.h>
 
 // implementation for: man 2 access
