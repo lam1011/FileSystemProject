@@ -15,7 +15,7 @@ void print_inode(inode_t *node) {
 }
 
 inode_t *get_inode(int inum) {
-  void *block = blocks_get_block(INODE_BLOCK_NUM);  // wherever you put inodes
+  void *block = blocks_get_block(INODE_BLOCK_NUM); 
   inode_t *inodes = (inode_t *)block;
   return &inodes[inum];
 }

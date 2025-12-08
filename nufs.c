@@ -1,6 +1,8 @@
 // based on cs3650 starter code
 
 #include "storage.h"
+#include "slist.h"
+
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
@@ -17,16 +19,8 @@
 // implementation for: man 2 access
 // Checks if a file exists.
 int nufs_access(const char *path, int mask) {
-  // TODO
-  int rv = 0;
-
-  // Only the root directory and our simulated file are accessible for now...
-  if (strcmp(path, "/") == 0 || strcmp(path, "/hello.txt") == 0) {
-    rv = 0;
-  } else { // ...others do not exist
-    rv = -ENOENT;
-  }
-
+  struct stat st;
+  int rv = storage_stat(path, &st);
   printf("access(%s, %04o) -> %d\n", path, mask, rv);
   return rv;
 }
@@ -45,20 +39,30 @@ int nufs_getattr(const char *path, struct stat *st) {
 // lists the contents of a directory
 int nufs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
                  off_t offset, struct fuse_file_info *fi) {
-  // TODO
   struct stat st;
-  int rv;
 
-  rv = nufs_getattr("/", &st);
-  assert(rv == 0);
-
+  storage_stat(path, &st);
   filler(buf, ".", &st, 0);
 
-  rv = nufs_getattr("/hello.txt", &st);
-  assert(rv == 0);
-  filler(buf, "hello.txt", &st, 0);
+  slist_t *list = storage_list(path);
+  slist_t *curr = list;
+  
+  while (curr != NULL) {
+    char full_path[256];
+    if (strcmp(path, "/") == 0) {
+      snprintf(full_path, 256, "/%s", curr->data);
+    } else {
+      snprintf(full_path, 256, "%s/%s", path, curr->data);
+    }
+    
+    storage_stat(full_path, &st);
+    filler(buf, curr->data, &st, 0);
+    curr = curr->next;
+  }
+  
+  slist_free(list);
 
-  printf("readdir(%s) -> %d\n", path, rv);
+  printf("readdir(%s) -> 0\n", path);
   return 0;
 }
 
@@ -67,8 +71,7 @@ int nufs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 // Note, for this assignment, you can alternatively implement the create
 // function.
 int nufs_mknod(const char *path, mode_t mode, dev_t rdev) {
-  // TODO
-  int rv = -1;
+  int rv = storage_mknod(path, mode);
   printf("mknod(%s, %04o) -> %d\n", path, mode, rv);
   return rv;
 }
@@ -116,8 +119,7 @@ int nufs_chmod(const char *path, mode_t mode) {
 }
 
 int nufs_truncate(const char *path, off_t size) {
-  // TODO
-  int rv = -1;
+  int rv = storage_truncate(path, size);
   printf("truncate(%s, %ld bytes) -> %d\n", path, size, rv);
   return rv;
 }
@@ -136,9 +138,7 @@ int nufs_open(const char *path, struct fuse_file_info *fi) {
 // Actually read data
 int nufs_read(const char *path, char *buf, size_t size, off_t offset,
               struct fuse_file_info *fi) {
-  // TODO
-  int rv = 6;
-  strcpy(buf, "hello\n");
+  int rv = storage_read(path, buf, size, offset);
   printf("read(%s, %ld bytes, @+%ld) -> %d\n", path, size, offset, rv);
   return rv;
 }
@@ -146,16 +146,14 @@ int nufs_read(const char *path, char *buf, size_t size, off_t offset,
 // Actually write data
 int nufs_write(const char *path, const char *buf, size_t size, off_t offset,
                struct fuse_file_info *fi) {
-  // TODO
-  int rv = -1;
+  int rv = storage_write(path, buf, size, offset);
   printf("write(%s, %ld bytes, @+%ld) -> %d\n", path, size, offset, rv);
   return rv;
 }
 
 // Update the timestamps on a file or directory.
 int nufs_utimens(const char *path, const struct timespec ts[2]) {
-  // TODO
-  int rv = -1;
+  int rv = storage_set_time(path, ts);
   printf("utimens(%s, [%ld, %ld; %ld %ld]) -> %d\n", path, ts[0].tv_sec,
          ts[0].tv_nsec, ts[1].tv_sec, ts[1].tv_nsec, rv);
   return rv;
@@ -195,8 +193,9 @@ struct fuse_operations nufs_ops;
 
 int main(int argc, char *argv[]) {
   assert(argc > 2 && argc < 6);
-  printf("TODO: mount %s as data file\n", argv[--argc]);
-  // storage_init(argv[--argc]);
+  char *disk_image = argv[--argc];
+  printf("TODO: mount %s as data file\n", disk_image);
+  storage_init(disk_image);
   nufs_init_ops(&nufs_ops);
   return fuse_main(argc, argv, &nufs_ops, NULL);
 }
