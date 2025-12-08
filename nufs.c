@@ -194,7 +194,6 @@ struct fuse_operations nufs_ops;
 int main(int argc, char *argv[]) {
   assert(argc > 2 && argc < 6);
   char *disk_image = argv[--argc];
-  printf("TODO: mount %s as data file\n", disk_image);
   storage_init(disk_image);
   nufs_init_ops(&nufs_ops);
   return fuse_main(argc, argv, &nufs_ops, NULL);

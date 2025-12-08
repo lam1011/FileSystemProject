@@ -3,6 +3,7 @@
 #include "directory.h"
 #include "inode.h"
 #include "slist.h"
+#include "bitmap.h"
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
