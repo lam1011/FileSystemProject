@@ -1,24 +1,51 @@
-[![Open in Codespaces](https://classroom.github.com/assets/launch-codespace-2972f46106e565e64193e422d61a12cf1da4916b45550586e14ef0a7c637dd04.svg)](https://classroom.github.com/open-in-codespaces?assignment_repo_id=21876751)
-[p2-link]: https://khoury-cs3650.github.io/p2.html
-# Project 2: File System
+# NUFS: A FUSE File System in C
 
-This is the starter code for [Project 2][p2-link]. The following contents are provided:
+A user-space file system written in C with FUSE, built with a partner for CS 3650 (Computer Systems) at Northeastern University, Fall 2025.
 
-- [Makefile](Makefile)   - Targets are explained in the assignment text
-- [README.md](README.md) - This README
-- [helpers](helpers)     - Helper code implementing access to bitmaps and blocks
-- [hints](hints)         - Incomplete bits and pieces that you might want to use as inspiration
-- [nufs.c](nufs.c)       - The main file of the file system driver
-- [test.pl](test.pl)     - Tests to exercise the file system
+NUFS stores an entire file system, including files and nested directories, inside a single 1 MB disk image. Once mounted, the image behaves like a normal directory: you can create, read, write, move, and link files with standard tools like `ls`, `cat`, `mkdir`, and `mv`.
 
-## Running the tests
+## Features
 
-You might need install an additional package to run the provided tests:
+- Create files and nested directories
+- Read and write at arbitrary offsets
+- Truncate files
+- Hard links with reference counting
+- Rename and move files between directories
+- Directory listing
+
+## Design
+
+The disk image is memory-mapped with `mmap` and divided into 256 blocks of 4 KB each.
+
+| Block | Contents |
+| --- | --- |
+| 0 | Block bitmap and inode bitmap |
+| 1 | Inode table |
+| 2+ | File and directory data |
+
+- **Allocation.** Free inodes and data blocks are tracked with bitmaps. Allocation finds the first free bit and marks it used.
+- **Inodes.** Each inode stores a file's mode, size, link count, and the data block it points to.
+- **Directories.** A directory is a data block holding fixed-size entries, each mapping a name to an inode number.
+- **Path resolution.** A path like `/foo/bar/file.txt` is split on `/` and resolved one directory at a time, starting from the root inode.
+- **FUSE layer.** `nufs.c` translates FUSE callbacks (`getattr`, `read`, `write`, `mknod`, `link`, `rename`, and others) into calls to the storage layer in `storage.c`.
+
+## Building and running
+
+Requires Linux with FUSE 2 (`libfuse-dev`).
 
 ```
-$ sudo apt-get install libtest-simple-perl
+make            # build
+make mount      # mount data.nufs at ./mnt
+make unmount    # unmount
+make test       # run the test suite
 ```
 
-Then using `make test` will run the provided tests.
+## Limitations
 
+- Each file is stored in a single 4 KB block, so files larger than 4 KB are not supported.
+- `rmdir` and `chmod` are not implemented.
+- Timestamps are not stored.
 
+## Acknowledgments
+
+Built on starter code from CS 3650 at Northeastern University. The block and bitmap helpers in `helpers/` were provided by the course.
